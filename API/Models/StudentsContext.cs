@@ -40,17 +40,12 @@ public partial class StudentsContext : DbContext
         modelBuilder.Entity<Student>(entity =>
         {
             entity.HasKey(e => e.StudentId).HasName("PK__students__4D11D63C292884B7");
-
             entity.ToTable("students");
-
             entity.Property(e => e.StudentId).HasColumnName("studentId");
-            entity.Property(e => e.Address)
-                .HasMaxLength(100)
-                .HasColumnName("address");
+            entity.Property(e => e.Address).HasMaxLength(100).HasColumnName("address");
             entity.Property(e => e.Age).HasColumnName("age");
-            entity.Property(e => e.Name)
-                .HasMaxLength(50)
-                .HasColumnName("name");
+            entity.Property(e => e.Name).HasMaxLength(50).HasColumnName("name");
+            entity.HasMany(e => e.Qualifications).WithOne(e => e.Student).OnDelete(DeleteBehavior.Cascade);
         });
         OnModelCreatingPartial(modelBuilder);
     }

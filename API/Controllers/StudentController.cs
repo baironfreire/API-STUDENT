@@ -119,23 +119,11 @@ namespace API.Controllers
         {
             try
             {
-                Student studentBD = await this._studentService.Get(id);
+                Student studentBD = await this._studentService.Details(id);
                 if (studentBD == null)
                 {
                     return ResponseHandler.NotFoundResponse();
                 }
-
-                StudentsQualificationsDTO studentsDTO = this._mapper.Map<StudentsQualificationsDTO>(await this._studentService.Details(studentBD.StudentId));
-                if (studentsDTO.Qualifications.Count > 0)
-                {
-                    return StatusCode(StatusCodes.Status422UnprocessableEntity, new
-                    {
-                        code = "UNPROCESSABLE_ENTITY",
-                        message = "El usuario cuenta con cualificaciones"
-                    });
-                }
-
-
 
                 bool response = await this._studentService.Delete(studentBD);
                 if (!response)
