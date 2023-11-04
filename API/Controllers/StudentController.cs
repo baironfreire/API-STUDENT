@@ -1,7 +1,7 @@
 ﻿using API.DTOs.Student;
 using API.Models;
 using API.Services.Contract;
-using API.Services.Implementation;
+using API.Utility;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +14,7 @@ namespace API.Controllers
         private readonly ILogger<StudentController> _logger;
         private readonly IMapper _mapper;
         private readonly IStudentService _studentService;
+        private readonly string identifier;
         public StudentController(
             ILogger<StudentController> logger,
             IMapper mapper,
@@ -23,6 +24,7 @@ namespace API.Controllers
             this._logger = logger;
             this._mapper = mapper;
             this._studentService = studentService;
+            this.identifier = "xxxxxxxxxx";
         }
         [HttpGet]
         public async Task<IActionResult> List()
@@ -30,32 +32,18 @@ namespace API.Controllers
             try
             {
                 List<StudentDTO> dTOs = this._mapper.Map<List<StudentDTO>>(await _studentService.List());
-                if (dTOs.Count > 0)
+                if (dTOs.Count <= 0)
                 {
-                    return Ok(
-                        new {
-                            code = "SUCCESSFUL_OPERATION",
-                            message = "Successful Operation",
-                            students = dTOs
-                        });
+                    return ResponseHandler.NotFoundResponse();
+
                 }
-                else
-                {
-                    return StatusCode(StatusCodes.Status404NotFound, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
-                }
+
+                return ResponseHandler.success(this.identifier, dTOs);
 
             } catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener la lista de estudiantes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
         [HttpGet("{id}")]
@@ -66,27 +54,14 @@ namespace API.Controllers
                 StudentDTO studentDTO = this._mapper.Map<StudentDTO>(await this._studentService.Get(id));
                 if (studentDTO == null)
                 {
-                    return StatusCode(StatusCodes.Status404NotFound, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
-                return Ok(new
-                {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation",
-                    student = studentDTO
-                });
+                return ResponseHandler.success(identifier, studentDTO);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener un estudiantes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -100,27 +75,14 @@ namespace API.Controllers
                 StudentDTO dto = this._mapper.Map<StudentDTO>(await this._studentService.Save(model));
                 if (dto.Id == 0)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest, new
-                    {
-                        code = "BAD_REQUEST",
-                        message = "Bad request"
-                    });
+                    return ResponseHandler.badRequestResponse();
                 }
-                return Ok(new
-                {
-                    code = "CREATED",
-                    message = "Created resource",
-                    student = dto
-                });
+                return ResponseHandler.created(identifier, dto);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener un estudiantes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
         [HttpPut("{id}")]
@@ -131,11 +93,7 @@ namespace API.Controllers
                 Student studentBD = await this._studentService.Get(id);
                 if(studentBD == null)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
                 Student model = this._mapper.Map<Student>(studentDTO);
                 studentBD.Name = model.Name;
@@ -145,27 +103,14 @@ namespace API.Controllers
                 bool response = await this._studentService.Update(studentBD);
                 if (!response)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new
-                    {
-                        code = "INTERNAL_SERVER_ERROR",
-                        message = "Internal server error"
-                    });
+                    return ResponseHandler.internalServerError();
                 }
-                return Ok(new
-                {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation",
-                    student = this._mapper.Map<StudentDTO>(studentBD)
-                });
+                return ResponseHandler.success(identifier, this._mapper.Map<StudentDTO>(studentBD));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar un estudiantes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -177,36 +122,33 @@ namespace API.Controllers
                 Student studentBD = await this._studentService.Get(id);
                 if (studentBD == null)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
-                bool response = await this._studentService.Delete(studentBD);
-                if (!response)
+
+                StudentsQualificationsDTO studentsDTO = this._mapper.Map<StudentsQualificationsDTO>(await this._studentService.Details(studentBD.StudentId));
+                if (studentsDTO.Qualifications.Count > 0)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new
+                    return StatusCode(StatusCodes.Status422UnprocessableEntity, new
                     {
-                        code = "INTERNAL_SERVER_ERROR",
-                        message = "Internal server error"
+                        code = "UNPROCESSABLE_ENTITY",
+                        message = "El usuario cuenta con cualificaciones"
                     });
                 }
 
-                return Ok(new
+
+
+                bool response = await this._studentService.Delete(studentBD);
+                if (!response)
                 {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation"
-                });
+                    return ResponseHandler.internalServerError();
+                }
+
+                return ResponseHandler.success(identifier, studentBD);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar un estudiante.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -218,29 +160,16 @@ namespace API.Controllers
                 StudentsQualificationsDTO studentsDTO = this._mapper.Map<StudentsQualificationsDTO>(await this._studentService.Details(studentId));
                 if (studentsDTO == null)
                 {
-                    return StatusCode(StatusCodes.Status404NotFound, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
 
 
-                return Ok(new
-                {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation",
-                    student = studentsDTO
-                });
+                return ResponseHandler.success(identifier,studentsDTO);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener un estudiantes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
     }
