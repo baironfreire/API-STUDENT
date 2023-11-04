@@ -1,6 +1,7 @@
 ﻿using API.DTOs.Qualification;
 using API.Models;
 using API.Services.Contract;
+using API.Utility;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,7 @@ namespace API.Controllers
         private readonly ILogger<QualificationController> _logger;
         private readonly IMapper _mapper;
         private readonly IQualificationService _qualificationService;
+        private readonly string identifier;
 
         public QualificationController(
             ILogger<QualificationController> logger,
@@ -23,7 +25,8 @@ namespace API.Controllers
             this._logger = logger;
             this._mapper = mapper;
             this._qualificationService = qualificationService;
-            
+            this.identifier = "xxxxxxxxxx";
+
         }
 
         [HttpGet]
@@ -32,34 +35,17 @@ namespace API.Controllers
             try
             {
                 List<QualificationDTO> dTOs = this._mapper.Map<List<QualificationDTO>>(await _qualificationService.List());
-                if (dTOs.Count > 0)
+                if (dTOs.Count <= 0)
                 {
-                    return Ok(
-                        new
-                        {
-                            code = "SUCCESSFUL_OPERATION",
-                            message = "Successful Operation",
-                            students = dTOs
-                        });
+                    return ResponseHandler.NotFoundResponse();
                 }
-                else
-                {
-                    return StatusCode(StatusCodes.Status404NotFound, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
-                }
+                return ResponseHandler.success(this.identifier, dTOs);
 
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener la lista de cualificacion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -71,27 +57,14 @@ namespace API.Controllers
                 QualificationDTO dto = this._mapper.Map<QualificationDTO>(await this._qualificationService.Get(id));
                 if (dto == null)
                 {
-                    return StatusCode(StatusCodes.Status404NotFound, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
-                return Ok(new
-                {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation",
-                    student = dto
-                });
+                return ResponseHandler.success(this.identifier, dto);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener una cualificacion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -107,27 +80,14 @@ namespace API.Controllers
                 QualificationDTO dto = this._mapper.Map<QualificationDTO>(await this._qualificationService.Save(model));
                 if (dto.Id == 0)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest, new
-                    {
-                        code = "BAD_REQUEST",
-                        message = "Bad request"
-                    });
+                    return ResponseHandler.badRequestResponse();
                 }
-                return Ok(new
-                {
-                    code = "CREATED",
-                    message = "Created resource",
-                    qualification = dto
-                });
+                return ResponseHandler.created(this.identifier, dto);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener un cualificacion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -139,11 +99,7 @@ namespace API.Controllers
                 Qualification modelBD = await this._qualificationService.Get(id);
                 if (modelBD == null)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
                 Qualification model = this._mapper.Map<Qualification>(inputDTO);
                 modelBD.QualificationName = model.QualificationName;
@@ -151,27 +107,15 @@ namespace API.Controllers
                 bool response = await this._qualificationService.Update(modelBD);
                 if (!response)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new
-                    {
-                        code = "INTERNAL_SERVER_ERROR",
-                        message = "Internal server error"
-                    });
+                    return ResponseHandler.internalServerError();
                 }
-                return Ok(new
-                {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation",
-                    student = this._mapper.Map<QualificationDTO>(modelBD)
-                });
+                return ResponseHandler.success(identifier, this._mapper.Map<QualificationDTO>(modelBD));
+                
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar un cualificacion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
 
@@ -183,36 +127,20 @@ namespace API.Controllers
                 Qualification modelDB = await this._qualificationService.Get(id);
                 if (modelDB == null)
                 {
-                    return StatusCode(StatusCodes.Status400BadRequest, new
-                    {
-                        code = "NOT_FOUND",
-                        message = "Not found"
-                    });
+                    return ResponseHandler.NotFoundResponse();
                 }
                 bool response = await this._qualificationService.Delete(modelDB);
                 if (!response)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new
-                    {
-                        code = "INTERNAL_SERVER_ERROR",
-                        message = "Internal server error"
-                    });
+                    return ResponseHandler.internalServerError();
                 }
 
-                return Ok(new
-                {
-                    code = "SUCCESSFUL_OPERATION",
-                    message = "Successful Operation"
-                });
+                return ResponseHandler.successNotData(this.identifier);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar la cualificaion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    code = "INTERNAL_SERVER_ERROR",
-                    message = "Internal server error"
-                });
+                return ResponseHandler.internalServerError();
             }
         }
     }
