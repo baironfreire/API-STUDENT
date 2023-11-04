@@ -32,6 +32,21 @@ namespace API.Utility
             return new ObjectResult( response );
             
         }
+        public static IActionResult successNotData(
+           string indetifier
+       )
+        {
+            var response = new
+            {
+                code = "SUCCESSFUL_OPERATION",
+                message = "Successful Operation",
+                indetifier = indetifier,
+                date = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+            };
+
+            return new ObjectResult(response);
+
+        }
 
         public static  IActionResult created<T>(
             string indetifier,
